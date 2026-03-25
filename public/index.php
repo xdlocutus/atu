@@ -59,6 +59,14 @@ function streamDownload(string $path, string $downloadName, string $mimeType = '
     exit;
 }
 
+function documentAbsolutePath(int $clientId, array $doc): string
+{
+    $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+    $base = $sharedRoot !== '' ? rtrim($sharedRoot, '/\\') : dirname(__DIR__) . '/storage/app/clients';
+
+    return $base . '/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+}
+
 
 if ($route === 'download_document') {
     $clientId = (int)($_GET['client_id'] ?? 0);
@@ -69,7 +77,7 @@ if ($route === 'download_document') {
         if (!$doc) {
             throw new RuntimeException('Document not found.');
         }
-        $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+        $path = documentAbsolutePath($clientId, $doc);
         streamDownload($path, (string)$doc['original_name'], (string)($doc['mime_type'] ?: 'application/octet-stream'));
     } catch (Throwable $e) {
         flash('flash_error', 'Unable to download file.');
@@ -101,7 +109,7 @@ if ($route === 'download_client_zip') {
         }
 
         foreach ($documents as $doc) {
-            $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+            $path = documentAbsolutePath($clientId, $doc);
             if (is_file($path)) {
                 $zip->addFile($path, $doc['category'] . '/' . $doc['original_name']);
             }
@@ -229,48 +237,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'upload_document') {
-            if (!isset($_FILES['upload']) || $_FILES['upload']['error'] !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Please select a file to upload.');
-            }
-
             $allowed = explode(',', (string)Env::get('ALLOWED_EXTENSIONS', 'pdf,dwg,jpg,jpeg,png'));
             $maxSize = ((int)Env::get('MAX_UPLOAD_MB', '50')) * 1024 * 1024;
-
-            $file = $_FILES['upload'];
-            $original = (string)$file['name'];
-            $tmp = (string)$file['tmp_name'];
-            $size = (int)$file['size'];
-            $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
-
-            if (!in_array($ext, $allowed, true)) {
-                throw new RuntimeException('Unsupported file type.');
-            }
-            if ($size <= 0 || $size > $maxSize) {
-                throw new RuntimeException('Invalid file size.');
+            if (!isset($_FILES['upload'])) {
+                throw new RuntimeException('Please select at least one file to upload.');
             }
 
             $category = trim((string)($_POST['category'] ?? 'supporting'));
             $notes = trim((string)($_POST['notes'] ?? ''));
-            $safeName = uniqid('doc_', true) . '.' . $ext;
-            $dir = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $category;
+            $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+            $base = $sharedRoot !== '' ? rtrim($sharedRoot, '/\\') : dirname(__DIR__) . '/storage/app/clients';
+            $dir = $base . '/' . $clientId . '/' . $category;
             if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
                 throw new RuntimeException('Could not create storage directory.');
             }
-            $target = $dir . '/' . $safeName;
-            if (!move_uploaded_file($tmp, $target)) {
-                throw new RuntimeException('Failed to move uploaded file.');
-            }
+            $names = (array)($_FILES['upload']['name'] ?? []);
+            $tmpNames = (array)($_FILES['upload']['tmp_name'] ?? []);
+            $sizes = (array)($_FILES['upload']['size'] ?? []);
+            $errors = (array)($_FILES['upload']['error'] ?? []);
+            $uploadedCount = 0;
 
-            $documentRepo->create($clientId, [
-                'category' => $category,
-                'original_name' => $original,
-                'stored_name' => $safeName,
-                'mime_type' => mime_content_type($target) ?: 'application/octet-stream',
-                'extension' => $ext,
-                'size_bytes' => $size,
-                'notes' => $notes,
-            ]);
+            foreach ($names as $idx => $name) {
+                if (($errors[$idx] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    continue;
+                }
+                $original = (string)$name;
+                $tmp = (string)($tmpNames[$idx] ?? '');
+                $size = (int)($sizes[$idx] ?? 0);
+                $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed, true)) {
+                    continue;
+                }
+                if ($size <= 0 || $size > $maxSize) {
+                    continue;
+                }
+                $safeName = uniqid('doc_', true) . '.' . $ext;
+                $target = $dir . '/' . $safeName;
+                if (!move_uploaded_file($tmp, $target)) {
+                    continue;
+                }
+                $documentRepo->create($clientId, [
+                    'category' => $category,
+                    'original_name' => $original,
+                    'stored_name' => $safeName,
+                    'mime_type' => mime_content_type($target) ?: 'application/octet-stream',
+                    'extension' => $ext,
+                    'size_bytes' => $size,
+                    'notes' => $notes,
+                ]);
+                $uploadedCount++;
+            }
+            if ($uploadedCount === 0) {
+                throw new RuntimeException('No valid files were uploaded.');
+            }
             flash('flash_success', 'File uploaded successfully.');
+            redirect('?r=client&id=' . $clientId . '&tab=files');
+        }
+
+        if ($action === 'delete_document') {
+            $documentId = (int)($_POST['document_id'] ?? 0);
+            $doc = $documentRepo->delete($clientId, $documentId);
+            if (!$doc) {
+                throw new RuntimeException('File not found.');
+            }
+            $path = documentAbsolutePath($clientId, $doc);
+            if (is_file($path)) {
+                @unlink($path);
+            }
+            flash('flash_success', 'File deleted.');
             redirect('?r=client&id=' . $clientId . '&tab=files');
         }
 
@@ -375,6 +409,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('flash_success', 'Payment deleted and invoice totals updated.');
             redirect('?r=client&id=' . $clientId . '&tab=payments');
         }
+
+        if ($action === 'delete_invoice') {
+            $invoiceRepo->delete((int)($_POST['invoice_id'] ?? 0), $clientId);
+            flash('flash_success', 'Invoice deleted.');
+            redirect('?r=client&id=' . $clientId . '&tab=invoices');
+        }
+
+        if ($action === 'delete_client') {
+            $targetClientId = (int)($_POST['target_client_id'] ?? 0);
+            if ($targetClientId <= 0) {
+                throw new RuntimeException('Invalid client id.');
+            }
+            $clientRepo->archive($targetClientId);
+            flash('flash_success', 'Client deleted (archived).');
+            redirect('?r=clients');
+        }
     } catch (Throwable $e) {
         flash('flash_error', $e->getMessage());
         $fallback = $clientId > 0 ? '?r=client&id=' . $clientId : '?r=clients';
@@ -403,7 +453,7 @@ switch ($route) {
         try {
             $clients = $clientRepo->list($query);
         } catch (Throwable $e) {
-            $dbError = 'Database connection unavailable. Please configure MariaDB and run init_db.';
+            $dbError = 'Search failed: ' . $e->getMessage();
         }
 
         View::render('clients/index', [
@@ -427,6 +477,14 @@ switch ($route) {
                 throw new RuntimeException('Client not found.');
             }
             $documents = $documentRepo->listByClient($clientId);
+            $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+            foreach ($documents as &$doc) {
+                $fullPath = documentAbsolutePath($clientId, $doc);
+                $doc['autocad_path'] = $fullPath;
+                $doc['autocad_uri'] = 'file:///' . str_replace(DIRECTORY_SEPARATOR, '/', ltrim($fullPath, '/\\'));
+                $doc['can_open_cad'] = $sharedRoot !== '' && in_array(strtolower((string)$doc['extension']), ['dwg', 'dxf'], true);
+            }
+            unset($doc);
             $quotes = $quoteRepo->listByClient($clientId);
             $invoices = $invoiceRepo->listByClient($clientId);
             $payments = $paymentRepo->listByClient($clientId);

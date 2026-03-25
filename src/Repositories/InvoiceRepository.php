@@ -156,4 +156,17 @@ final class InvoiceRepository
         $update = $pdo->prepare('UPDATE invoices SET status = :status, balance_due = :balance WHERE id = :id');
         $update->execute(['status' => $status, 'balance' => $balance, 'id' => $invoiceId]);
     }
+
+    public function delete(int $invoiceId, int $clientId): void
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        $payments = $pdo->prepare('DELETE p FROM payments p INNER JOIN invoices i ON i.id = p.invoice_id WHERE i.id = :id AND i.client_id = :client_id');
+        $payments->execute(['id' => $invoiceId, 'client_id' => $clientId]);
+        $items = $pdo->prepare('DELETE ii FROM invoice_items ii INNER JOIN invoices i ON i.id = ii.invoice_id WHERE i.id = :id AND i.client_id = :client_id');
+        $items->execute(['id' => $invoiceId, 'client_id' => $clientId]);
+        $invoice = $pdo->prepare('DELETE FROM invoices WHERE id = :id AND client_id = :client_id');
+        $invoice->execute(['id' => $invoiceId, 'client_id' => $clientId]);
+        $pdo->commit();
+    }
 }

@@ -48,4 +48,18 @@ final class DocumentRepository
             'notes' => $data['notes'] ?: null,
         ]);
     }
+
+    public function delete(int $clientId, int $documentId): ?array
+    {
+        $doc = $this->findByClient($clientId, $documentId);
+        if (!$doc) {
+            return null;
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('DELETE FROM documents WHERE id = :id AND client_id = :client_id');
+        $stmt->execute(['id' => $documentId, 'client_id' => $clientId]);
+
+        return $doc;
+    }
 }

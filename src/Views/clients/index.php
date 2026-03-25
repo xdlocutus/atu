@@ -61,7 +61,15 @@
                 <td><?= htmlspecialchars((string)($client['contact_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars((string)($client['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars((string)$client['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                <td><a class="btn btn-sm btn-outline-primary" href="?r=client&id=<?= (int)$client['id'] ?>&tab=files">Open</a></td>
+                <td class="d-flex gap-1">
+                  <a class="btn btn-sm btn-outline-primary" href="?r=client&id=<?= (int)$client['id'] ?>&tab=files">Open</a>
+                  <form method="post" class="m-0" onsubmit="return confirm('Are you sure you want to delete/archive this client?');">
+                    <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>"/>
+                    <input type="hidden" name="action" value="delete_client"/>
+                    <input type="hidden" name="target_client_id" value="<?= (int)$client['id'] ?>"/>
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                  </form>
+                </td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>

@@ -56,4 +56,11 @@ final class ClientRepository
 
         return (int)($row['c'] ?? 0);
     }
+
+    public function archive(int $id): void
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('UPDATE clients SET archived_at = NOW() WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }
