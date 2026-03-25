@@ -54,6 +54,17 @@ final class ClientRepository
         ]);
     }
 
+
+    public function find(int $id): ?array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT id, full_name, contact_number, email, erf_number, notes, created_at FROM clients WHERE id = :id AND archived_at IS NULL');
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     public function totalCount(): int
     {
         $pdo = Database::connection();

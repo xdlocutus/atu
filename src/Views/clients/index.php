@@ -46,12 +46,12 @@
             <th>Client Name</th>
             <th>Phone</th>
             <th>Email</th>
-            <th>Created</th>
+            <th>Created</th><th></th>
           </tr>
         </thead>
         <tbody>
           <?php if (empty($clients)): ?>
-            <tr><td colspan="5" class="text-secondary">No clients found.</td></tr>
+            <tr><td colspan="6" class="text-secondary">No clients found.</td></tr>
           <?php else: ?>
             <?php foreach ($clients as $client): ?>
               <tr>
@@ -60,6 +60,7 @@
                 <td><?= htmlspecialchars((string)($client['contact_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars((string)($client['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars((string)$client['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                <td><a class="btn btn-sm btn-outline-primary" href="?r=client&id=<?= (int)$client['id'] ?>&tab=files">Open</a></td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>

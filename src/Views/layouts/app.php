@@ -20,7 +20,7 @@
             <h5 class="text-white mb-4">Drafting Control</h5>
             <nav class="nav flex-column gap-1">
                 <?php foreach ([
-                    'dashboard'=>'Dashboard','clients'=>'Clients','files'=>'Files','quotes'=>'Quotes','invoices'=>'Invoices','payments'=>'Payments','statements'=>'Statements','settings'=>'Settings'
+                    'dashboard'=>'Dashboard','clients'=>'Clients','settings'=>'Settings'
                 ] as $key=>$label): ?>
                     <a class="nav-link <?= (($_GET['r'] ?? 'dashboard') === $key) ? 'active' : '' ?>" href="?r=<?= $key ?>"><?= $label ?></a>
                 <?php endforeach; ?>
