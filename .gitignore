@@ -1,0 +1,6 @@
+/vendor/
+/.env
+/database/app.sqlite
+/storage/app/
+/storage/logs/
+/storage/backups/
