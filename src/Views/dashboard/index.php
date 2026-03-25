@@ -1,3 +1,6 @@
+<?php if (!empty($db_error)): ?>
+<div class="alert alert-warning"><?= htmlspecialchars((string)$db_error, ENT_QUOTES, 'UTF-8') ?></div>
+<?php endif; ?>
 <div class="row g-3 mb-3">
     <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Total Clients</div><div class="fs-3 fw-semibold"><?= (int)$stats['total_clients'] ?></div></div></div></div>
     <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Pending Quotes</div><div class="fs-3 fw-semibold"><?= (int)$stats['pending_quotes'] ?></div></div></div></div>
