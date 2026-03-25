@@ -10,7 +10,8 @@ final class View
     {
         extract($data, EXTR_SKIP);
         $viewFile = dirname(__DIR__) . '/Views/' . $template . '.php';
-        $layout = dirname(__DIR__) . '/Views/layouts/' . (str_starts_with($template, 'pdf/') ? 'pdf' : 'app') . '.php';
+        $layoutName = str_starts_with($template, 'pdf/') ? 'pdf' : (str_starts_with($template, 'auth/') ? 'auth' : 'app');
+        $layout = dirname(__DIR__) . '/Views/layouts/' . $layoutName . '.php';
 
         ob_start();
         require $viewFile;
