@@ -1,0 +1,5 @@
+/vendor/
+/.env
+/storage/app/
+/storage/logs/
+/storage/backups/
