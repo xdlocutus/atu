@@ -12,9 +12,16 @@
 </div>
 <h4>Invoices</h4>
 <table><thead><tr><th>#</th><th>Status</th><th>Total</th><th>Balance</th></tr></thead><tbody>
-<?php foreach ($invoices as $i): ?><tr><td><?= htmlspecialchars((string)$i['invoice_number'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$i['status'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format((float)$i['total'],2) ?></td><td><?= number_format((float)$i['balance_due'],2) ?></td></tr><?php endforeach; ?>
+<?php foreach ($invoices as $i): ?>
+<?php $statusLabel = match ((string)$i['status']) {
+    'paid' => 'Paid',
+    'partially_paid' => 'Partially Paid',
+    'sent', 'draft', 'overdue' => 'Due',
+    default => ucwords(str_replace('_', ' ', (string)$i['status'])),
+}; ?>
+<tr><td><?= htmlspecialchars((string)$i['invoice_number'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$i['total'],2) ?></td><td>R <?= number_format((float)$i['balance_due'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>
 <h4>Payments</h4>
 <table><thead><tr><th>Date</th><th>Invoice</th><th>Amount</th></tr></thead><tbody>
-<?php foreach ($payments as $p): ?><tr><td><?= htmlspecialchars((string)$p['payment_date'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$p['invoice_number'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format((float)$p['amount'],2) ?></td></tr><?php endforeach; ?>
+<?php foreach ($payments as $p): ?><tr><td><?= htmlspecialchars((string)$p['payment_date'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$p['invoice_number'], ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$p['amount'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>

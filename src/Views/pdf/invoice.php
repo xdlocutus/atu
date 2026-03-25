@@ -13,7 +13,15 @@
   </div>
 </div>
 <div><strong>Client:</strong> <?= htmlspecialchars((string)$client['full_name'], ENT_QUOTES, 'UTF-8') ?> (Erf <?= htmlspecialchars((string)$client['erf_number'], ENT_QUOTES, 'UTF-8') ?>)</div>
+<?php
+$statusLabel = match ((string)$invoice['status']) {
+    'paid' => 'Paid',
+    'partially_paid' => 'Partially Paid',
+    'sent', 'draft', 'overdue' => 'Due',
+    default => ucwords(str_replace('_', ' ', (string)$invoice['status'])),
+};
+?>
 <table><thead><tr><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>
-<tr><td><?= htmlspecialchars((string)$invoice['status'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format((float)$invoice['total'],2) ?></td><td><?= number_format((float)$invoice['amount_paid'],2) ?></td><td><?= number_format((float)$invoice['balance_due'],2) ?></td></tr>
+<tr><td><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$invoice['total'],2) ?></td><td>R <?= number_format((float)$invoice['amount_paid'],2) ?></td><td>R <?= number_format((float)$invoice['balance_due'],2) ?></td></tr>
 </tbody></table>
 <div class="note"><strong>Deposit terms:</strong> 50% deposit due before work starts.</div>
