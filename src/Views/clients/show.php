@@ -27,7 +27,7 @@
 
 <?php if ($tab === 'files'): ?>
   <div class="card card-soft mb-3"><div class="card-body">
-    <h5>Upload File</h5>
+    <div class="d-flex justify-content-between align-items-center"><h5 class="mb-0">Upload File</h5><a class="btn btn-outline-primary btn-sm" href="?r=download_client_zip&client_id=<?= (int)$client['id'] ?>">Download All (ZIP)</a></div>
     <form method="post" enctype="multipart/form-data" class="row g-2">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>"/>
       <input type="hidden" name="action" value="upload_document"/>
@@ -38,9 +38,9 @@
       <div class="col-md-2"><button class="btn btn-primary w-100">Upload</button></div>
     </form>
   </div></div>
-  <div class="card card-soft"><div class="card-body"><h5>Client Files</h5><div class="table-responsive"><table class="table"><thead><tr><th>Category</th><th>Name</th><th>Size</th><th>Notes</th><th>Date</th></tr></thead><tbody>
-  <?php foreach ($documents as $d): ?><tr><td><?= htmlspecialchars((string)$d['category'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$d['original_name'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format(((int)$d['size_bytes'])/1024, 1) ?> KB</td><td><?= htmlspecialchars((string)($d['notes'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$d['created_at'], ENT_QUOTES, 'UTF-8') ?></td></tr><?php endforeach; ?>
-  <?php if (empty($documents)): ?><tr><td colspan="5" class="text-secondary">No files uploaded yet.</td></tr><?php endif; ?>
+  <div class="card card-soft"><div class="card-body"><h5>Client Files</h5><div class="table-responsive"><table class="table"><thead><tr><th>Category</th><th>Name</th><th>Size</th><th>Notes</th><th>Date</th><th></th></tr></thead><tbody>
+  <?php foreach ($documents as $d): ?><tr><td><?= htmlspecialchars((string)$d['category'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$d['original_name'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format(((int)$d['size_bytes'])/1024, 1) ?> KB</td><td><?= htmlspecialchars((string)($d['notes'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$d['created_at'], ENT_QUOTES, 'UTF-8') ?></td><td><a class="btn btn-sm btn-outline-primary" href="?r=download_document&client_id=<?= (int)$client['id'] ?>&document_id=<?= (int)$d['id'] ?>">Download</a></td></tr><?php endforeach; ?>
+  <?php if (empty($documents)): ?><tr><td colspan="6" class="text-secondary">No files uploaded yet.</td></tr><?php endif; ?>
   </tbody></table></div></div></div>
 <?php endif; ?>
 

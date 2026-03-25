@@ -42,6 +42,84 @@ function flash(string $key, string $message): void
     $_SESSION[$key] = $message;
 }
 
+function streamDownload(string $path, string $downloadName, string $mimeType = 'application/octet-stream'): void
+{
+    if (!is_file($path)) {
+        http_response_code(404);
+        echo 'File not found';
+        exit;
+    }
+
+    header('Content-Description: File Transfer');
+    header('Content-Type: ' . $mimeType);
+    header('Content-Disposition: attachment; filename="' . rawurlencode($downloadName) . '"');
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: no-cache, must-revalidate');
+    readfile($path);
+    exit;
+}
+
+
+if ($route === 'download_document') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    $documentId = (int)($_GET['document_id'] ?? 0);
+
+    try {
+        $doc = $documentRepo->findByClient($clientId, $documentId);
+        if (!$doc) {
+            throw new RuntimeException('Document not found.');
+        }
+        $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+        streamDownload($path, (string)$doc['original_name'], (string)($doc['mime_type'] ?: 'application/octet-stream'));
+    } catch (Throwable $e) {
+        flash('flash_error', 'Unable to download file.');
+        redirect('?r=client&id=' . $clientId . '&tab=files');
+    }
+}
+
+if ($route === 'download_client_zip') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    try {
+        $client = $clientRepo->find($clientId);
+        if (!$client) {
+            throw new RuntimeException('Client not found.');
+        }
+        $documents = $documentRepo->listByClient($clientId);
+        if (empty($documents)) {
+            throw new RuntimeException('No documents to zip.');
+        }
+        $tmpZip = tempnam(sys_get_temp_dir(), 'client_docs_');
+        if ($tmpZip === false) {
+            throw new RuntimeException('Could not create temp archive.');
+        }
+        $zipPath = $tmpZip . '.zip';
+        rename($tmpZip, $zipPath);
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('Could not open zip archive.');
+        }
+
+        foreach ($documents as $doc) {
+            $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+            if (is_file($path)) {
+                $zip->addFile($path, $doc['category'] . '/' . $doc['original_name']);
+            }
+        }
+        $zip->close();
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="client_' . $clientId . '_documents.zip"');
+        header('Content-Length: ' . filesize($zipPath));
+        readfile($zipPath);
+        @unlink($zipPath);
+        exit;
+    } catch (Throwable $e) {
+        flash('flash_error', 'Unable to generate ZIP download.');
+        redirect('?r=client&id=' . $clientId . '&tab=files');
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf'] ?? null;
     if (!Csrf::verify(is_string($token) ? $token : null)) {

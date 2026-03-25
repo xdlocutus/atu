@@ -18,6 +18,18 @@ final class DocumentRepository
         return $stmt->fetchAll();
     }
 
+
+    public function findByClient(int $clientId, int $documentId): ?array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT id, client_id, category, original_name, stored_name, mime_type, extension, size_bytes
+            FROM documents WHERE id = :id AND client_id = :client_id AND is_archived = 0');
+        $stmt->execute(['id' => $documentId, 'client_id' => $clientId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     public function create(int $clientId, array $data): void
     {
         $pdo = Database::connection();
