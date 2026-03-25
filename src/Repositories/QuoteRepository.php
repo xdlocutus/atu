@@ -58,6 +58,27 @@ final class QuoteRepository
         $pdo->commit();
     }
 
+
+    public function update(int $quoteId, int $clientId, array $data): void
+    {
+        $pdo = Database::connection();
+        $subtotal = (float)$data['quantity'] * (float)$data['rate'];
+        $vatRate = (float)$data['vat_rate'];
+        $vatAmount = $subtotal * ($vatRate / 100);
+        $total = $subtotal + $vatAmount;
+
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE quotes SET status=:status, quote_date=:quote_date, expiry_date=:expiry_date, subtotal=:subtotal, vat_rate=:vat_rate, vat_amount=:vat_amount, total=:total, notes=:notes, terms=:terms WHERE id=:id AND client_id=:client_id');
+        $stmt->execute([
+            'status'=>$data['status'],'quote_date'=>$data['quote_date'],'expiry_date'=>$data['expiry_date'],
+            'subtotal'=>$subtotal,'vat_rate'=>$vatRate,'vat_amount'=>$vatAmount,'total'=>$total,
+            'notes'=>$data['notes'] ?: null,'terms'=>$data['terms'] ?: null,'id'=>$quoteId,'client_id'=>$clientId
+        ]);
+        $item = $pdo->prepare('UPDATE quote_items SET description=:description, quantity=:quantity, rate=:rate, subtotal=:subtotal WHERE quote_id=:quote_id LIMIT 1');
+        $item->execute(['description'=>$data['description'],'quantity'=>$data['quantity'],'rate'=>$data['rate'],'subtotal'=>$subtotal,'quote_id'=>$quoteId]);
+        $pdo->commit();
+    }
+
     public function find(int $quoteId): ?array
     {
         $pdo = Database::connection();

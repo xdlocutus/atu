@@ -24,6 +24,7 @@
       <h5 class="mb-3">Create Client</h5>
       <form method="post" class="row g-3">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>"/>
+        <input type="hidden" name="action" value="create_client"/>
         <div class="col-md-6"><label class="form-label">Full name *</label><input name="full_name" class="form-control" required/></div>
         <div class="col-md-3"><label class="form-label">Contact number</label><input name="contact_number" class="form-control"/></div>
         <div class="col-md-3"><label class="form-label">Email</label><input name="email" type="email" class="form-control"/></div>

@@ -29,7 +29,7 @@
         <main class="col-12 col-lg-10 p-4">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <h3 class="mb-0"><?= htmlspecialchars($title ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
-                <input class="form-control" style="max-width:560px" placeholder="Quick search: Erf number, client, phone, email"/>
+                <form method="get" class="d-flex gap-2" style="max-width:560px;width:100%"><input type="hidden" name="r" value="clients"/><input name="q" class="form-control" placeholder="Quick search: Erf number, client, phone, email"/><button class="btn btn-outline-primary" type="submit">Go</button></form>
             </div>
             <?= $content ?>
         </main>

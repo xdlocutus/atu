@@ -95,6 +95,43 @@ final class InvoiceRepository
         $pdo->commit();
     }
 
+
+    public function update(int $invoiceId, int $clientId, array $data): void
+    {
+        $subtotal = (float)$data['quantity'] * (float)$data['rate'];
+        $vatRate = (float)$data['vat_rate'];
+        $vatAmount = $subtotal * ($vatRate / 100);
+        $total = $subtotal + $vatAmount;
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE invoices SET status=:status, invoice_date=:invoice_date, due_date=:due_date, subtotal=:subtotal, vat_rate=:vat_rate, vat_amount=:vat_amount, total=:total, notes=:notes, balance_due=GREATEST(:total - amount_paid,0) WHERE id=:id AND client_id=:client_id');
+        $stmt->execute([
+            'status'=>$data['status'],'invoice_date'=>$data['invoice_date'],'due_date'=>$data['due_date'],
+            'subtotal'=>$subtotal,'vat_rate'=>$vatRate,'vat_amount'=>$vatAmount,'total'=>$total,
+            'notes'=>$data['notes'] ?: null,'id'=>$invoiceId,'client_id'=>$clientId
+        ]);
+        $item = $pdo->prepare('UPDATE invoice_items SET description=:description, quantity=:quantity, rate=:rate, subtotal=:subtotal WHERE invoice_id=:invoice_id LIMIT 1');
+        $item->execute(['description'=>$data['description'],'quantity'=>$data['quantity'],'rate'=>$data['rate'],'subtotal'=>$subtotal,'invoice_id'=>$invoiceId]);
+        $pdo->commit();
+    }
+
+    public function creditUnpaid(int $invoiceId, int $clientId): void
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT amount_paid FROM invoices WHERE id=:id AND client_id=:client_id');
+        $stmt->execute(['id'=>$invoiceId,'client_id'=>$clientId]);
+        $row=$stmt->fetch();
+        if (!$row) {
+            throw new \RuntimeException('Invoice not found.');
+        }
+        if ((float)$row['amount_paid'] > 0) {
+            throw new \RuntimeException('Only unpaid invoices can be credited.');
+        }
+        $upd = $pdo->prepare("UPDATE invoices SET status='cancelled', notes=CONCAT(IFNULL(notes,''), '\n[Credited] Invoice credited before payment.'), balance_due=0 WHERE id=:id AND client_id=:client_id");
+        $upd->execute(['id'=>$invoiceId,'client_id'=>$clientId]);
+    }
+
     public function recalcStatus(int $invoiceId): void
     {
         $pdo = Database::connection();

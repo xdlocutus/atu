@@ -120,6 +120,76 @@ if ($route === 'download_client_zip') {
     }
 }
 
+if ($route === 'export_quote') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    $quoteId = (int)($_GET['quote_id'] ?? 0);
+    $quote = $quoteRepo->find($quoteId);
+    $client = $clientRepo->find($clientId);
+    if (!$quote || !$client || (int)$quote['client_id'] !== $clientId) {
+        http_response_code(404);
+        echo 'Quote not found';
+        exit;
+    }
+    $company = [
+        'name' => Env::get('COMPANY_NAME', 'Your Company Name'),
+        'email' => Env::get('COMPANY_EMAIL', ''),
+        'phone' => Env::get('COMPANY_PHONE', ''),
+        'address' => Env::get('COMPANY_ADDRESS', ''),
+        'logo' => Env::get('COMPANY_LOGO_URL', ''),
+    ];
+    View::render('pdf/quote', ['title' => 'Quote PDF', 'quote' => $quote, 'client' => $client, 'company' => $company]);
+    exit;
+}
+
+if ($route === 'export_invoice') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    $invoiceId = (int)($_GET['invoice_id'] ?? 0);
+    $client = $clientRepo->find($clientId);
+    $invoices = $invoiceRepo->listByClient($clientId);
+    $invoice = null;
+    foreach ($invoices as $i) {
+        if ((int)$i['id'] === $invoiceId) {
+            $invoice = $i;
+            break;
+        }
+    }
+    if (!$client || !$invoice) {
+        http_response_code(404);
+        echo 'Invoice not found';
+        exit;
+    }
+    $company = [
+        'name' => Env::get('COMPANY_NAME', 'Your Company Name'),
+        'email' => Env::get('COMPANY_EMAIL', ''),
+        'phone' => Env::get('COMPANY_PHONE', ''),
+        'address' => Env::get('COMPANY_ADDRESS', ''),
+        'logo' => Env::get('COMPANY_LOGO_URL', ''),
+    ];
+    View::render('pdf/invoice', ['title' => 'Invoice PDF', 'invoice' => $invoice, 'client' => $client, 'company' => $company]);
+    exit;
+}
+
+if ($route === 'export_statement') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    $client = $clientRepo->find($clientId);
+    if (!$client) {
+        http_response_code(404);
+        echo 'Client not found';
+        exit;
+    }
+    $invoices = $invoiceRepo->listByClient($clientId);
+    $payments = $paymentRepo->listByClient($clientId);
+    $company = [
+        'name' => Env::get('COMPANY_NAME', 'Your Company Name'),
+        'email' => Env::get('COMPANY_EMAIL', ''),
+        'phone' => Env::get('COMPANY_PHONE', ''),
+        'address' => Env::get('COMPANY_ADDRESS', ''),
+        'logo' => Env::get('COMPANY_LOGO_URL', ''),
+    ];
+    View::render('pdf/statement', ['title' => 'Statement PDF', 'invoices' => $invoices, 'payments' => $payments, 'client' => $client, 'company' => $company]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf'] ?? null;
     if (!Csrf::verify(is_string($token) ? $token : null)) {
@@ -220,6 +290,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('?r=client&id=' . $clientId . '&tab=quotes');
         }
 
+        if ($action === 'update_quote') {
+            $quoteRepo->update((int)($_POST['quote_id'] ?? 0), $clientId, [
+                'status' => $_POST['status'] ?? 'draft',
+                'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
+                'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),
+                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
+                'quantity' => (float)($_POST['quantity'] ?? 1),
+                'rate' => (float)($_POST['rate'] ?? 0),
+                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'notes' => trim((string)($_POST['notes'] ?? '')),
+                'terms' => trim((string)($_POST['terms'] ?? '')),
+            ]);
+            flash('flash_success', 'Quote updated.');
+            redirect('?r=client&id=' . $clientId . '&tab=quotes');
+        }
+
         if ($action === 'convert_quote') {
             $quoteId = (int)($_POST['quote_id'] ?? 0);
             $quote = $quoteRepo->find($quoteId);
@@ -246,6 +332,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('?r=client&id=' . $clientId . '&tab=invoices');
         }
 
+        if ($action === 'update_invoice') {
+            $invoiceRepo->update((int)($_POST['invoice_id'] ?? 0), $clientId, [
+                'status' => $_POST['status'] ?? 'draft',
+                'invoice_date' => $_POST['invoice_date'] ?? date('Y-m-d'),
+                'due_date' => $_POST['due_date'] ?? date('Y-m-d', strtotime('+14 days')),
+                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
+                'quantity' => (float)($_POST['quantity'] ?? 1),
+                'rate' => (float)($_POST['rate'] ?? 0),
+                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'notes' => trim((string)($_POST['notes'] ?? '')),
+            ]);
+            flash('flash_success', 'Invoice updated.');
+            redirect('?r=client&id=' . $clientId . '&tab=invoices');
+        }
+
+        if ($action === 'credit_invoice') {
+            $invoiceRepo->creditUnpaid((int)($_POST['invoice_id'] ?? 0), $clientId);
+            flash('flash_success', 'Invoice credited/cancelled.');
+            redirect('?r=client&id=' . $clientId . '&tab=invoices');
+        }
+
         if ($action === 'create_payment') {
             $invoiceId = (int)($_POST['invoice_id'] ?? 0);
             $paymentRepo->create([
@@ -258,6 +365,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $invoiceRepo->recalcStatus($invoiceId);
             flash('flash_success', 'Payment captured and invoice updated.');
+            redirect('?r=client&id=' . $clientId . '&tab=payments');
+        }
+
+        if ($action === 'delete_payment') {
+            $invoiceId = $paymentRepo->delete((int)($_POST['payment_id'] ?? 0), $clientId);
+            $invoiceRepo->recalcStatus($invoiceId);
+            flash('flash_success', 'Payment deleted and invoice totals updated.');
             redirect('?r=client&id=' . $clientId . '&tab=payments');
         }
     } catch (Throwable $e) {
