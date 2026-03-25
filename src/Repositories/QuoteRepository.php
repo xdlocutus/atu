@@ -1,0 +1,76 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Repositories;
+
+use App\Core\Database;
+
+final class QuoteRepository
+{
+    public function listByClient(int $clientId): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT id, quote_number, status, quote_date, expiry_date, subtotal, vat_amount, total
+            FROM quotes WHERE client_id = :client_id ORDER BY created_at DESC');
+        $stmt->execute(['client_id' => $clientId]);
+
+        return $stmt->fetchAll();
+    }
+
+    public function create(int $clientId, array $data): void
+    {
+        $pdo = Database::connection();
+        $number = 'Q-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        $subtotal = (float)$data['quantity'] * (float)$data['rate'];
+        $vatRate = (float)$data['vat_rate'];
+        $vatAmount = $subtotal * ($vatRate / 100);
+        $total = $subtotal + $vatAmount;
+
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('INSERT INTO quotes
+            (quote_number, client_id, status, quote_date, expiry_date, subtotal, vat_rate, vat_amount, total, notes, terms)
+            VALUES (:quote_number, :client_id, :status, :quote_date, :expiry_date, :subtotal, :vat_rate, :vat_amount, :total, :notes, :terms)');
+        $stmt->execute([
+            'quote_number' => $number,
+            'client_id' => $clientId,
+            'status' => $data['status'],
+            'quote_date' => $data['quote_date'],
+            'expiry_date' => $data['expiry_date'],
+            'subtotal' => $subtotal,
+            'vat_rate' => $vatRate,
+            'vat_amount' => $vatAmount,
+            'total' => $total,
+            'notes' => $data['notes'] ?: null,
+            'terms' => $data['terms'] ?: null,
+        ]);
+
+        $quoteId = (int)$pdo->lastInsertId();
+        $item = $pdo->prepare('INSERT INTO quote_items (quote_id, description, quantity, rate, subtotal)
+            VALUES (:quote_id, :description, :quantity, :rate, :subtotal)');
+        $item->execute([
+            'quote_id' => $quoteId,
+            'description' => $data['description'],
+            'quantity' => $data['quantity'],
+            'rate' => $data['rate'],
+            'subtotal' => $subtotal,
+        ]);
+        $pdo->commit();
+    }
+
+    public function find(int $quoteId): ?array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT * FROM quotes WHERE id = :id');
+        $stmt->execute(['id' => $quoteId]);
+        $quote = $stmt->fetch();
+        if (!$quote) {
+            return null;
+        }
+        $items = $pdo->prepare('SELECT description, quantity, rate, subtotal FROM quote_items WHERE quote_id = :id');
+        $items->execute(['id' => $quoteId]);
+        $quote['items'] = $items->fetchAll();
+
+        return $quote;
+    }
+}
