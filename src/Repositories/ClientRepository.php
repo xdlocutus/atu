@@ -20,12 +20,16 @@ final class ClientRepository
         $params = [];
         if ($search !== '') {
             $sql .= ' AND (
-                erf_number LIKE :q
-                OR full_name LIKE :q
-                OR contact_number LIKE :q
-                OR email LIKE :q
+                erf_number LIKE :q_erf
+                OR full_name LIKE :q_name
+                OR contact_number LIKE :q_phone
+                OR email LIKE :q_email
             )';
-            $params['q'] = '%' . $search . '%';
+            $like = '%' . $search . '%';
+            $params['q_erf'] = $like;
+            $params['q_name'] = $like;
+            $params['q_phone'] = $like;
+            $params['q_email'] = $like;
         }
 
         $sql .= ' ORDER BY created_at DESC LIMIT ' . $safeLimit;
