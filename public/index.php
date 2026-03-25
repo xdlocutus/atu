@@ -59,6 +59,14 @@ function streamDownload(string $path, string $downloadName, string $mimeType = '
     exit;
 }
 
+function documentAbsolutePath(int $clientId, array $doc): string
+{
+    $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+    $base = $sharedRoot !== '' ? rtrim($sharedRoot, '/\\') : dirname(__DIR__) . '/storage/app/clients';
+
+    return $base . '/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+}
+
 
 if ($route === 'download_document') {
     $clientId = (int)($_GET['client_id'] ?? 0);
@@ -69,7 +77,7 @@ if ($route === 'download_document') {
         if (!$doc) {
             throw new RuntimeException('Document not found.');
         }
-        $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+        $path = documentAbsolutePath($clientId, $doc);
         streamDownload($path, (string)$doc['original_name'], (string)($doc['mime_type'] ?: 'application/octet-stream'));
     } catch (Throwable $e) {
         flash('flash_error', 'Unable to download file.');
@@ -101,7 +109,7 @@ if ($route === 'download_client_zip') {
         }
 
         foreach ($documents as $doc) {
-            $path = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
+            $path = documentAbsolutePath($clientId, $doc);
             if (is_file($path)) {
                 $zip->addFile($path, $doc['category'] . '/' . $doc['original_name']);
             }
@@ -252,7 +260,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = trim((string)($_POST['category'] ?? 'supporting'));
             $notes = trim((string)($_POST['notes'] ?? ''));
             $safeName = uniqid('doc_', true) . '.' . $ext;
-            $dir = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $category;
+            $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+            $base = $sharedRoot !== '' ? rtrim($sharedRoot, '/\\') : dirname(__DIR__) . '/storage/app/clients';
+            $dir = $base . '/' . $clientId . '/' . $category;
             if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
                 throw new RuntimeException('Could not create storage directory.');
             }
@@ -427,6 +437,14 @@ switch ($route) {
                 throw new RuntimeException('Client not found.');
             }
             $documents = $documentRepo->listByClient($clientId);
+            $sharedRoot = trim((string)Env::get('AUTOCAD_SHARED_ROOT', ''));
+            foreach ($documents as &$doc) {
+                $fullPath = documentAbsolutePath($clientId, $doc);
+                $doc['autocad_path'] = $fullPath;
+                $doc['autocad_uri'] = 'file:///' . str_replace(DIRECTORY_SEPARATOR, '/', ltrim($fullPath, '/\\'));
+                $doc['can_open_cad'] = $sharedRoot !== '' && in_array(strtolower((string)$doc['extension']), ['dwg', 'dxf'], true);
+            }
+            unset($doc);
             $quotes = $quoteRepo->listByClient($clientId);
             $invoices = $invoiceRepo->listByClient($clientId);
             $payments = $paymentRepo->listByClient($clientId);
