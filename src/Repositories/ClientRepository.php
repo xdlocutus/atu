@@ -49,6 +49,20 @@ final class ClientRepository
         return $row ?: null;
     }
 
+    public function create(array $data): void
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('INSERT INTO clients (full_name, contact_number, email, erf_number, notes)
+            VALUES (:full_name, :contact_number, :email, :erf_number, :notes)');
+        $stmt->execute([
+            'full_name' => $data['full_name'],
+            'contact_number' => $data['contact_number'] ?: null,
+            'email' => $data['email'] ?: null,
+            'erf_number' => $data['erf_number'],
+            'notes' => $data['notes'] ?: null,
+        ]);
+    }
+
     public function totalCount(): int
     {
         $pdo = Database::connection();
