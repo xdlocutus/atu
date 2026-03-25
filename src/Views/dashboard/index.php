@@ -1,10 +1,7 @@
-<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:14px">
-    <div class="kpi"><div class="label">Total Clients</div><div class="value"><?= (int)$stats['total_clients'] ?></div></div>
-    <div class="kpi"><div class="label">Pending Quotes</div><div class="value"><?= (int)$stats['pending_quotes'] ?></div></div>
-    <div class="kpi"><div class="label">Unpaid Invoices</div><div class="value"><?= (int)$stats['unpaid_invoices'] ?></div></div>
-    <div class="kpi"><div class="label">Overdue Invoices</div><div class="value"><?= (int)$stats['overdue_invoices'] ?></div></div>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Total Clients</div><div class="fs-3 fw-semibold"><?= (int)$stats['total_clients'] ?></div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Pending Quotes</div><div class="fs-3 fw-semibold"><?= (int)$stats['pending_quotes'] ?></div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Unpaid Invoices</div><div class="fs-3 fw-semibold"><?= (int)$stats['unpaid_invoices'] ?></div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card card-soft"><div class="card-body"><div class="text-secondary small">Overdue Invoices</div><div class="fs-3 fw-semibold"><?= (int)$stats['overdue_invoices'] ?></div></div></div></div>
 </div>
-<div class="card">
-    <h3>Recent activity</h3>
-    <p style="color:var(--muted)">Uploads, downloads, quote status changes, and payments will appear here once modules are connected.</p>
-</div>
+<div class="card card-soft"><div class="card-body"><h5>Recent activity</h5><p class="text-secondary mb-0">Uploads, downloads, quote changes, and payments will appear here once services are connected.</p></div></div>

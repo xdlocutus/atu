@@ -1,12 +1,14 @@
-<div class="card">
-    <h3>Add Client</h3>
-    <div class="row">
-        <div style="flex:1 1 260px"><label>Full name</label><input/></div>
-        <div style="flex:1 1 220px"><label>Contact number</label><input/></div>
-        <div style="flex:1 1 220px"><label>Email</label><input type="email"/></div>
-        <div style="flex:1 1 180px"><label>Erf number (required)</label><input required/></div>
-    </div>
-    <label>Notes</label><textarea rows="3"></textarea>
-    <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>"/>
-    <div style="margin-top:10px"><button class="btn">Save Client</button></div>
+<div class="card card-soft">
+  <div class="card-body">
+    <h5 class="mb-3">Add Client</h5>
+    <form class="row g-3">
+      <div class="col-md-6"><label class="form-label">Full name</label><input class="form-control"/></div>
+      <div class="col-md-3"><label class="form-label">Contact number</label><input class="form-control"/></div>
+      <div class="col-md-3"><label class="form-label">Email</label><input type="email" class="form-control"/></div>
+      <div class="col-md-4"><label class="form-label">Erf number (required)</label><input class="form-control" required/></div>
+      <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" rows="3"></textarea></div>
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>"/>
+      <div class="col-12"><button class="btn btn-primary">Save Client</button></div>
+    </form>
+  </div>
 </div>

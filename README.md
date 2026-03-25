@@ -2,103 +2,92 @@
 
 ## 1) Recommended PHP stack
 
-**Best choice: Laravel 12 + PostgreSQL + Redis + Tailwind CSS + Alpine.js + Vite**.
+**Recommended stack (non-Laravel):**
+- PHP 8.2+
+- MariaDB 10.6+
+- Bootstrap 5.3 UI
+- PDO + prepared statements
+- Modular MVC-style structure (controllers/services/repositories/views)
 
-Why Laravel is the best fit for your brief:
-- Mature security defaults (CSRF, bcrypt/Argon hashing, validation, authorization gates/policies).
-- Fast scaffolding for modules (clients, files, quotes, invoices, payments, statements).
-- Excellent queue/email/pdf ecosystem.
-- Clean architecture support via service classes, repositories, form requests, policies, jobs.
-- Easy to maintain and scale for office daily use.
-
-> In this repository, a **secure modular PHP scaffold** is implemented (framework-agnostic) so development can start immediately. You can migrate this structure directly into Laravel modules/controllers/services in the next iteration.
+Why this stack:
+- Fast and lightweight for daily office operations.
+- Easy hosting on common LAMP/LEMP environments.
+- Strong security control with explicit handling of sessions, CSRF, validation, and authorization.
+- Bootstrap provides a professional, clean, mobile-responsive UI quickly.
 
 ---
 
 ## 2) Database schema (implemented)
 
-Schema file: `database/schema.sql`
+Schema file: `database/schema.sql` (MariaDB / MySQL compatible)
 
 Core entities:
 - `users` (RBAC roles: admin/manager/staff/viewer)
-- `clients` (with **unique indexed `erf_number`** as primary searchable field)
+- `clients` (**unique indexed `erf_number`** as primary searchable field)
 - `client_notes_history`
 - `documents` (category, metadata, version, archive)
 - `quotes`, `quote_items`
 - `invoices`, `invoice_items`
-- `payments` (partial payments supported)
+- `payments` (partial payments)
 - `reminders`, `tasks`, `submissions`
 - `activity_logs` (audit trail)
-- `settings` (company profile, VAT defaults, numbering sequences)
-
-Search indexes included for erf/name/phone/email.
+- `settings` (company details, VAT defaults, numbering sequences)
 
 ---
 
 ## 3) Module structure
 
-- **Auth & Security**: login/logout, sessions, CSRF, password hashing, rate limiting hooks.
-- **Dashboard**: quick totals and recent activity widgets.
-- **Clients**: CRUD + dedicated client page + notes history.
-- **Documents**: multi-upload pipeline, categories, metadata, archive, activity logs.
-- **Quotes**: draft/sent/accepted/rejected/expired + quote items + PDF endpoint.
-- **Invoices**: manual or converted from accepted quote + statuses + balance tracking.
-- **Payments**: capture full/partial payments and auto-update invoice status.
-- **Statements**: date-filtered statement generation and PDF export endpoint.
-- **Settings**: company details, VAT defaults, numbering sequences.
+- Auth & Security
+- Dashboard
+- Clients
+- Documents / File Manager
+- Quotes
+- Invoices
+- Payments
+- Statements
+- Settings
 
 ---
 
 ## 4) User flow
 
-1. User logs in securely.
-2. Lands on dashboard with quick search (erf/name/phone/email).
-3. Creates/fetches client by **erf number**.
-4. Uses client workspace tabs:
-   - Overview
-   - Files
-   - Quotes
-   - Invoices
-   - Payments
-   - Statements
-   - Tasks/Reminders/Submissions
-5. Accepted quote converts to invoice in one click.
-6. Payments update invoice balances/status instantly.
-7. Statements exported per client/date range.
+1. Login securely.
+2. Use quick search by Erf number / name / phone / email.
+3. Open dedicated client workspace.
+4. Manage files, quotes, invoices, payments, and statements in one place.
+5. Convert accepted quote to invoice with one action.
+6. Capture partial/full payments and auto-update balances/statuses.
 
 ---
 
 ## 5) Scaffold included
 
 - Front controller router (`public/index.php`)
-- Lightweight core classes (`src/Core/*`)
+- Environment/config + DB connector (`src/Core/*`)
 - CSRF helper (`src/Security/Csrf.php`)
-- SQL schema (`database/schema.sql`)
-- Environment template (`.env.example`)
-- UI shell with sidebar/topbar and responsive cards/tables
+- MariaDB schema (`database/schema.sql`)
+- Bootstrap 5 responsive UI shell and module pages (`src/Views/*`)
+- Initialization script (`scripts/init_db.php`)
 
 ---
 
-## 6) Build order (best-practice implementation plan)
+## 6) Build order
 
-1. **Foundation**: auth, roles, settings, activity logs, dashboard KPIs.
-2. **Client module**: erf-first search + client dashboard.
-3. **Files module**: secure upload, metadata/versioning/archive, ZIP download.
-4. **Quotes module**: numbering, items, statuses, PDF export.
-5. **Invoices + conversion**: quote->invoice pipeline.
-6. **Payments**: partial payments, automated status transitions.
-7. **Statements**: filters + PDF.
-8. **Automation**: reminders/emails.
-9. **Hardening**: throttling, backups, restore drills, penetration checks.
-
----
+1. Auth + RBAC + activity logs
+2. Client management (erf-first search)
+3. File/document storage + ZIP downloads + versioning
+4. Quotes + PDF generation
+5. Invoices + quote conversion
+6. Payments + balance/status automation
+7. Statements + PDF export
+8. Reminders, tasks, council tracker, email delivery
+9. Security hardening + backups/recovery
 
 ## Run locally
 
 ```bash
 cp .env.example .env
+composer dump-autoload
 php scripts/init_db.php
 php -S localhost:8080 -t public
 ```
-
-Open `http://localhost:8080`.
