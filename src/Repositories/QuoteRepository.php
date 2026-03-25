@@ -99,6 +99,8 @@ final class QuoteRepository
     {
         $pdo = Database::connection();
         $pdo->beginTransaction();
+        $invoiceLinks = $pdo->prepare('UPDATE invoices SET quote_id = NULL WHERE quote_id = :quote_id AND client_id = :client_id');
+        $invoiceLinks->execute(['quote_id' => $quoteId, 'client_id' => $clientId]);
         $items = $pdo->prepare('DELETE FROM quote_items WHERE quote_id = :quote_id');
         $items->execute(['quote_id' => $quoteId]);
         $quote = $pdo->prepare('DELETE FROM quotes WHERE id = :id AND client_id = :client_id');
