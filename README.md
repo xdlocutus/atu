@@ -95,3 +95,10 @@ php -S localhost:8080 -t public
 
 ### AutoCAD direct-open integration
 Set `AUTOCAD_SHARED_ROOT` in `.env` to a shared/network folder that AutoCAD users can access. Uploaded DWG/DXF files are stored there and can be opened via the **Open CAD** button from the client Files tab. Saving in AutoCAD writes back to the same shared path used by the system.
+
+
+### Create first admin user
+```bash
+php scripts/create_user.php marco marco@example.com Hero3338351 admin
+```
+Then login with that user.

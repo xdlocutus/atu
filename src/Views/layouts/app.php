@@ -20,11 +20,11 @@
             <h5 class="text-white mb-4">Drafting Control</h5>
             <nav class="nav flex-column gap-1">
                 <?php foreach ([
-                    'dashboard'=>'Dashboard','clients'=>'Clients','settings'=>'Settings'
+                    'dashboard'=>'Dashboard','clients'=>'Clients','users'=>'Users','settings'=>'Settings'
                 ] as $key=>$label): ?>
                     <a class="nav-link <?= (($_GET['r'] ?? 'dashboard') === $key) ? 'active' : '' ?>" href="?r=<?= $key ?>"><?= $label ?></a>
                 <?php endforeach; ?>
-            </nav>
+            </nav><hr class="border-secondary"><a class="nav-link" href="?r=logout">Logout</a>
         </aside>
         <main class="col-12 col-lg-10 p-4">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">

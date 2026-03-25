@@ -9,6 +9,7 @@ use App\Repositories\DocumentRepository;
 use App\Repositories\InvoiceRepository;
 use App\Repositories\PaymentRepository;
 use App\Repositories\QuoteRepository;
+use App\Repositories\UserRepository;
 use App\Security\Csrf;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -29,6 +30,7 @@ $documentRepo = new DocumentRepository();
 $quoteRepo = new QuoteRepository();
 $invoiceRepo = new InvoiceRepository();
 $paymentRepo = new PaymentRepository();
+$userRepo = new UserRepository();
 $dbError = null;
 
 function redirect(string $url): void
@@ -40,6 +42,11 @@ function redirect(string $url): void
 function flash(string $key, string $message): void
 {
     $_SESSION[$key] = $message;
+}
+
+function isAuthenticated(): bool
+{
+    return isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
 }
 
 function streamDownload(string $path, string $downloadName, string $mimeType = 'application/octet-stream'): void
@@ -83,6 +90,13 @@ if ($route === 'download_document') {
         flash('flash_error', 'Unable to download file.');
         redirect('?r=client&id=' . $clientId . '&tab=files');
     }
+}
+
+if (!isAuthenticated() && $route !== 'login') {
+    redirect('?r=login');
+}
+if (isAuthenticated() && $route === 'login') {
+    redirect('?r=dashboard');
 }
 
 if ($route === 'download_client_zip') {
@@ -229,6 +243,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             flash('flash_success', 'Client created successfully.');
             redirect('?r=clients');
+        }
+
+        if ($action === 'login') {
+            $email = trim((string)($_POST['email'] ?? ''));
+            $password = (string)($_POST['password'] ?? '');
+            $user = $userRepo->findByEmail($email);
+            if (!$user || !(int)$user['is_active'] || !password_verify($password, (string)$user['password_hash'])) {
+                throw new RuntimeException('Invalid login credentials.');
+            }
+            $_SESSION['user_id'] = (int)$user['id'];
+            $_SESSION['user_role'] = (string)$user['role'];
+            $_SESSION['user_name'] = (string)$user['full_name'];
+            flash('flash_success', 'Welcome back, ' . (string)$user['full_name']);
+            redirect('?r=dashboard');
+        }
+
+        if ($action === 'create_user') {
+            if (($_SESSION['user_role'] ?? '') !== 'admin') {
+                throw new RuntimeException('Only admin can create users.');
+            }
+            $name = trim((string)($_POST['full_name'] ?? ''));
+            $email = trim((string)($_POST['email'] ?? ''));
+            $password = (string)($_POST['password'] ?? '');
+            $role = trim((string)($_POST['role'] ?? 'staff'));
+            if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
+                throw new RuntimeException('Invalid user details. Password must be at least 8 characters.');
+            }
+            $userRepo->create($name, $email, $password, $role);
+            flash('flash_success', 'User created successfully.');
+            redirect('?r=users');
         }
 
         $clientId = (int)($_POST['client_id'] ?? 0);
@@ -444,6 +488,21 @@ $flashSuccess = $_SESSION['flash_success'] ?? null;
 unset($_SESSION['flash_error'], $_SESSION['flash_success']);
 
 switch ($route) {
+    case 'login':
+        View::render('auth/login', [
+            'title' => 'Login',
+            'csrf' => Csrf::token(),
+            'flash_error' => $flashError,
+            'flash_success' => $flashSuccess,
+        ]);
+        break;
+    case 'logout':
+        session_unset();
+        session_destroy();
+        session_start();
+        flash('flash_success', 'Logged out successfully.');
+        redirect('?r=login');
+        break;
     case 'dashboard':
         View::render('dashboard/index', ['title' => 'Dashboard', 'stats' => $stats, 'db_error' => $dbError]);
         break;
@@ -510,6 +569,22 @@ switch ($route) {
         break;
     case 'settings':
         View::render('settings/index', ['title' => 'Settings']);
+        break;
+    case 'users':
+        $users = [];
+        try {
+            $users = $userRepo->list();
+        } catch (Throwable $e) {
+            $dbError = $e->getMessage();
+        }
+        View::render('users/index', [
+            'title' => 'Users',
+            'users' => $users,
+            'csrf' => Csrf::token(),
+            'flash_error' => $flashError,
+            'flash_success' => $flashSuccess,
+            'db_error' => $dbError,
+        ]);
         break;
     default:
         http_response_code(404);
