@@ -94,4 +94,15 @@ final class QuoteRepository
 
         return $quote;
     }
+
+    public function delete(int $quoteId, int $clientId): void
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        $items = $pdo->prepare('DELETE FROM quote_items WHERE quote_id = :quote_id');
+        $items->execute(['quote_id' => $quoteId]);
+        $quote = $pdo->prepare('DELETE FROM quotes WHERE id = :id AND client_id = :client_id');
+        $quote->execute(['id' => $quoteId, 'client_id' => $clientId]);
+        $pdo->commit();
+    }
 }

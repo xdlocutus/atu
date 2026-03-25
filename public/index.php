@@ -313,7 +313,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Quote not found for this client.');
             }
             $invoiceRepo->createFromQuote($quote);
-            flash('flash_success', 'Quote converted to invoice.');
+            $quoteRepo->delete($quoteId, $clientId);
+            flash('flash_success', 'Quote converted to invoice and removed from quotes.');
             redirect('?r=client&id=' . $clientId . '&tab=invoices');
         }
 
