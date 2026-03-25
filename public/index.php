@@ -275,6 +275,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('?r=users');
         }
 
+        if ($action === 'delete_client') {
+            $targetClientId = (int)($_POST['target_client_id'] ?? 0);
+            if ($targetClientId <= 0) {
+                throw new RuntimeException('Invalid client id.');
+            }
+            $clientRepo->archive($targetClientId);
+            flash('flash_success', 'Client deleted (archived).');
+            redirect('?r=clients');
+        }
+
         $clientId = (int)($_POST['client_id'] ?? 0);
         if ($clientId <= 0) {
             throw new RuntimeException('Invalid client selected.');
@@ -360,7 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
                 'quantity' => (float)($_POST['quantity'] ?? 1),
                 'rate' => (float)($_POST['rate'] ?? 0),
-                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
                 'terms' => trim((string)($_POST['terms'] ?? '')),
             ]);
@@ -376,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
                 'quantity' => (float)($_POST['quantity'] ?? 1),
                 'rate' => (float)($_POST['rate'] ?? 0),
-                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
                 'terms' => trim((string)($_POST['terms'] ?? '')),
             ]);
@@ -404,7 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
                 'quantity' => (float)($_POST['quantity'] ?? 1),
                 'rate' => (float)($_POST['rate'] ?? 0),
-                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
             ]);
             flash('flash_success', 'Invoice created.');
@@ -419,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
                 'quantity' => (float)($_POST['quantity'] ?? 1),
                 'rate' => (float)($_POST['rate'] ?? 0),
-                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
             ]);
             flash('flash_success', 'Invoice updated.');
@@ -460,15 +470,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('?r=client&id=' . $clientId . '&tab=invoices');
         }
 
-        if ($action === 'delete_client') {
-            $targetClientId = (int)($_POST['target_client_id'] ?? 0);
-            if ($targetClientId <= 0) {
-                throw new RuntimeException('Invalid client id.');
-            }
-            $clientRepo->archive($targetClientId);
-            flash('flash_success', 'Client deleted (archived).');
-            redirect('?r=clients');
-        }
     } catch (Throwable $e) {
         flash('flash_error', $e->getMessage());
         $fallback = $clientId > 0 ? '?r=client&id=' . $clientId : '?r=clients';
