@@ -1,0 +1,1 @@
+<div class="card"><h3>Quotes</h3><p>Statuses: <span class="tag">Draft</span> <span class="tag">Sent</span> <span class="tag">Accepted</span> <span class="tag">Rejected</span> <span class="tag">Expired</span></p><button class="btn">New Quote</button></div>
