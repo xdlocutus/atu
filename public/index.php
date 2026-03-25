@@ -1,0 +1,266 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Core\Env;
+use App\Core\View;
+use App\Repositories\ClientRepository;
+use App\Repositories\DocumentRepository;
+use App\Repositories\InvoiceRepository;
+use App\Repositories\PaymentRepository;
+use App\Repositories\QuoteRepository;
+use App\Security\Csrf;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+Env::load(dirname(__DIR__) . '/.env');
+
+session_name(Env::get('SESSION_NAME', 'draft_panel_session'));
+session_set_cookie_params([
+    'httponly' => Env::get('SESSION_HTTP_ONLY', 'true') === 'true',
+    'secure' => Env::get('SESSION_SECURE', 'false') === 'true',
+    'samesite' => Env::get('SESSION_SAME_SITE', 'Strict'),
+]);
+session_start();
+
+$route = $_GET['r'] ?? 'dashboard';
+$clientRepo = new ClientRepository();
+$documentRepo = new DocumentRepository();
+$quoteRepo = new QuoteRepository();
+$invoiceRepo = new InvoiceRepository();
+$paymentRepo = new PaymentRepository();
+$dbError = null;
+
+function redirect(string $url): void
+{
+    header('Location: ' . $url);
+    exit;
+}
+
+function flash(string $key, string $message): void
+{
+    $_SESSION[$key] = $message;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf'] ?? null;
+    if (!Csrf::verify(is_string($token) ? $token : null)) {
+        flash('flash_error', 'Invalid CSRF token. Please retry.');
+        redirect($_SERVER['HTTP_REFERER'] ?? '?r=clients');
+    }
+
+    $action = $_POST['action'] ?? '';
+
+    try {
+        if ($action === 'create_client') {
+            $fullName = trim((string)($_POST['full_name'] ?? ''));
+            $contact = trim((string)($_POST['contact_number'] ?? ''));
+            $email = trim((string)($_POST['email'] ?? ''));
+            $erf = trim((string)($_POST['erf_number'] ?? ''));
+            $notes = trim((string)($_POST['notes'] ?? ''));
+            if ($fullName === '' || $erf === '') {
+                throw new RuntimeException('Full name and Erf number are required.');
+            }
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Please provide a valid email address.');
+            }
+            $clientRepo->create([
+                'full_name' => $fullName,
+                'contact_number' => $contact,
+                'email' => $email,
+                'erf_number' => $erf,
+                'notes' => $notes,
+            ]);
+            flash('flash_success', 'Client created successfully.');
+            redirect('?r=clients');
+        }
+
+        $clientId = (int)($_POST['client_id'] ?? 0);
+        if ($clientId <= 0) {
+            throw new RuntimeException('Invalid client selected.');
+        }
+
+        if ($action === 'upload_document') {
+            if (!isset($_FILES['upload']) || $_FILES['upload']['error'] !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('Please select a file to upload.');
+            }
+
+            $allowed = explode(',', (string)Env::get('ALLOWED_EXTENSIONS', 'pdf,dwg,jpg,jpeg,png'));
+            $maxSize = ((int)Env::get('MAX_UPLOAD_MB', '50')) * 1024 * 1024;
+
+            $file = $_FILES['upload'];
+            $original = (string)$file['name'];
+            $tmp = (string)$file['tmp_name'];
+            $size = (int)$file['size'];
+            $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+
+            if (!in_array($ext, $allowed, true)) {
+                throw new RuntimeException('Unsupported file type.');
+            }
+            if ($size <= 0 || $size > $maxSize) {
+                throw new RuntimeException('Invalid file size.');
+            }
+
+            $category = trim((string)($_POST['category'] ?? 'supporting'));
+            $notes = trim((string)($_POST['notes'] ?? ''));
+            $safeName = uniqid('doc_', true) . '.' . $ext;
+            $dir = dirname(__DIR__) . '/storage/app/clients/' . $clientId . '/' . $category;
+            if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+                throw new RuntimeException('Could not create storage directory.');
+            }
+            $target = $dir . '/' . $safeName;
+            if (!move_uploaded_file($tmp, $target)) {
+                throw new RuntimeException('Failed to move uploaded file.');
+            }
+
+            $documentRepo->create($clientId, [
+                'category' => $category,
+                'original_name' => $original,
+                'stored_name' => $safeName,
+                'mime_type' => mime_content_type($target) ?: 'application/octet-stream',
+                'extension' => $ext,
+                'size_bytes' => $size,
+                'notes' => $notes,
+            ]);
+            flash('flash_success', 'File uploaded successfully.');
+            redirect('?r=client&id=' . $clientId . '&tab=files');
+        }
+
+        if ($action === 'create_quote') {
+            $quoteRepo->create($clientId, [
+                'status' => $_POST['status'] ?? 'draft',
+                'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
+                'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),
+                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
+                'quantity' => (float)($_POST['quantity'] ?? 1),
+                'rate' => (float)($_POST['rate'] ?? 0),
+                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'notes' => trim((string)($_POST['notes'] ?? '')),
+                'terms' => trim((string)($_POST['terms'] ?? '')),
+            ]);
+            flash('flash_success', 'Quote created.');
+            redirect('?r=client&id=' . $clientId . '&tab=quotes');
+        }
+
+        if ($action === 'convert_quote') {
+            $quoteId = (int)($_POST['quote_id'] ?? 0);
+            $quote = $quoteRepo->find($quoteId);
+            if (!$quote || (int)$quote['client_id'] !== $clientId) {
+                throw new RuntimeException('Quote not found for this client.');
+            }
+            $invoiceRepo->createFromQuote($quote);
+            flash('flash_success', 'Quote converted to invoice.');
+            redirect('?r=client&id=' . $clientId . '&tab=invoices');
+        }
+
+        if ($action === 'create_invoice') {
+            $invoiceRepo->createManual($clientId, [
+                'status' => $_POST['status'] ?? 'draft',
+                'invoice_date' => $_POST['invoice_date'] ?? date('Y-m-d'),
+                'due_date' => $_POST['due_date'] ?? date('Y-m-d', strtotime('+14 days')),
+                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
+                'quantity' => (float)($_POST['quantity'] ?? 1),
+                'rate' => (float)($_POST['rate'] ?? 0),
+                'vat_rate' => (float)($_POST['vat_rate'] ?? 15),
+                'notes' => trim((string)($_POST['notes'] ?? '')),
+            ]);
+            flash('flash_success', 'Invoice created.');
+            redirect('?r=client&id=' . $clientId . '&tab=invoices');
+        }
+
+        if ($action === 'create_payment') {
+            $invoiceId = (int)($_POST['invoice_id'] ?? 0);
+            $paymentRepo->create([
+                'invoice_id' => $invoiceId,
+                'payment_date' => $_POST['payment_date'] ?? date('Y-m-d'),
+                'amount' => (float)($_POST['amount'] ?? 0),
+                'method' => trim((string)($_POST['method'] ?? 'EFT')),
+                'reference_number' => trim((string)($_POST['reference_number'] ?? '')),
+                'notes' => trim((string)($_POST['notes'] ?? '')),
+            ]);
+            $invoiceRepo->recalcStatus($invoiceId);
+            flash('flash_success', 'Payment captured and invoice updated.');
+            redirect('?r=client&id=' . $clientId . '&tab=payments');
+        }
+    } catch (Throwable $e) {
+        flash('flash_error', $e->getMessage());
+        $fallback = $clientId > 0 ? '?r=client&id=' . $clientId : '?r=clients';
+        redirect($fallback);
+    }
+}
+
+$stats = ['total_clients' => 0, 'pending_quotes' => 0, 'unpaid_invoices' => 0, 'overdue_invoices' => 0];
+try {
+    $stats['total_clients'] = $clientRepo->totalCount();
+} catch (Throwable $e) {
+    $dbError = 'Database connection unavailable. Please configure MariaDB and run init_db.';
+}
+
+$flashError = $_SESSION['flash_error'] ?? null;
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+
+switch ($route) {
+    case 'dashboard':
+        View::render('dashboard/index', ['title' => 'Dashboard', 'stats' => $stats, 'db_error' => $dbError]);
+        break;
+    case 'clients':
+        $query = trim((string)($_GET['q'] ?? ''));
+        $clients = [];
+        try {
+            $clients = $clientRepo->list($query);
+        } catch (Throwable $e) {
+            $dbError = 'Database connection unavailable. Please configure MariaDB and run init_db.';
+        }
+
+        View::render('clients/index', [
+            'title' => 'Clients',
+            'csrf' => Csrf::token(),
+            'clients' => $clients,
+            'search' => $query,
+            'flash_error' => $flashError,
+            'flash_success' => $flashSuccess,
+            'db_error' => $dbError,
+        ]);
+        break;
+    case 'client':
+        $clientId = (int)($_GET['id'] ?? 0);
+        $tab = (string)($_GET['tab'] ?? 'files');
+        $client = null;
+        $documents = $quotes = $invoices = $payments = $statement = [];
+        try {
+            $client = $clientRepo->find($clientId);
+            if (!$client) {
+                throw new RuntimeException('Client not found.');
+            }
+            $documents = $documentRepo->listByClient($clientId);
+            $quotes = $quoteRepo->listByClient($clientId);
+            $invoices = $invoiceRepo->listByClient($clientId);
+            $payments = $paymentRepo->listByClient($clientId);
+            $statement = ['invoices' => $invoices, 'payments' => $payments];
+        } catch (Throwable $e) {
+            $dbError = $e->getMessage();
+        }
+
+        View::render('clients/show', [
+            'title' => 'Client Workspace',
+            'csrf' => Csrf::token(),
+            'client' => $client,
+            'tab' => $tab,
+            'documents' => $documents,
+            'quotes' => $quotes,
+            'invoices' => $invoices,
+            'payments' => $payments,
+            'statement' => $statement,
+            'flash_error' => $flashError,
+            'flash_success' => $flashSuccess,
+            'db_error' => $dbError,
+        ]);
+        break;
+    case 'settings':
+        View::render('settings/index', ['title' => 'Settings']);
+        break;
+    default:
+        http_response_code(404);
+        echo '404';
+}
