@@ -17,4 +17,19 @@
 <?php foreach ($quote['items'] as $item): ?><tr><td><?= htmlspecialchars((string)$item['description'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$item['quantity'], ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$item['rate'],2) ?></td><td>R <?= number_format((float)$item['subtotal'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>
 <div class="right" style="margin-top:12px">Subtotal: R <?= number_format((float)$quote['subtotal'],2) ?><br><strong>Total: R <?= number_format((float)$quote['total'],2) ?></strong></div>
-<div class="note"><strong>Deposit terms:</strong> 50% deposit due before work starts.</div>
+<div class="note" style="white-space: pre-line;">
+PAYMENT DETAILS:
+Name: A.T.UNGERER
+Bank: ABSA
+Acc.: 1102351386
+Type: CHEQUE
+B/Code: 632005
+Pay ref: <?= htmlspecialchars((string)$quote['quote_number'], ENT_QUOTES, 'UTF-8') ?>
+
+50% deposit upon acceptance of this quotation.
+Full payment including submission fees when plans are submitted.
+This includes all prints, submission of plans untill passed.
+
+I ............................................hereby appoint Mr A.T.Ungerer as the draughtsperson to complete the plans of my property and accept the quotation as binding
+Date:.....................
+</div>
