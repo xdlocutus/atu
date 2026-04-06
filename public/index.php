@@ -364,6 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'create_quote') {
             $quoteRepo->create($clientId, [
+                'quote_number' => trim((string)($_POST['quote_number'] ?? '')),
                 'status' => $_POST['status'] ?? 'draft',
                 'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
                 'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),
@@ -380,6 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'update_quote') {
             $quoteRepo->update((int)($_POST['quote_id'] ?? 0), $clientId, [
+                'quote_number' => trim((string)($_POST['quote_number'] ?? '')),
                 'status' => $_POST['status'] ?? 'draft',
                 'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
                 'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),

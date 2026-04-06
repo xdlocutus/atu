@@ -21,7 +21,10 @@ final class QuoteRepository
     public function create(int $clientId, array $data): void
     {
         $pdo = Database::connection();
-        $number = 'Q-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        $number = trim((string)($data['quote_number'] ?? ''));
+        if ($number === '') {
+            $number = 'Q-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        }
         $subtotal = (float)$data['quantity'] * (float)$data['rate'];
         $vatRate = (float)$data['vat_rate'];
         $vatAmount = $subtotal * ($vatRate / 100);
@@ -68,8 +71,9 @@ final class QuoteRepository
         $total = $subtotal + $vatAmount;
 
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare('UPDATE quotes SET status=:status, quote_date=:quote_date, expiry_date=:expiry_date, subtotal=:subtotal, vat_rate=:vat_rate, vat_amount=:vat_amount, total=:total, notes=:notes, terms=:terms WHERE id=:id AND client_id=:client_id');
+        $stmt = $pdo->prepare('UPDATE quotes SET quote_number=:quote_number, status=:status, quote_date=:quote_date, expiry_date=:expiry_date, subtotal=:subtotal, vat_rate=:vat_rate, vat_amount=:vat_amount, total=:total, notes=:notes, terms=:terms WHERE id=:id AND client_id=:client_id');
         $stmt->execute([
+            'quote_number' => trim((string)($data['quote_number'] ?? '')),
             'status'=>$data['status'],'quote_date'=>$data['quote_date'],'expiry_date'=>$data['expiry_date'],
             'subtotal'=>$subtotal,'vat_rate'=>$vatRate,'vat_amount'=>$vatAmount,'total'=>$total,
             'notes'=>$data['notes'] ?: null,'terms'=>$data['terms'] ?: null,'id'=>$quoteId,'client_id'=>$clientId
