@@ -74,6 +74,33 @@ function documentAbsolutePath(int $clientId, array $doc): string
     return $base . '/' . $clientId . '/' . $doc['category'] . '/' . $doc['stored_name'];
 }
 
+function quoteItemsFromPost(array $post): array
+{
+    $descriptions = $post['item_description'] ?? [];
+    $quantities = $post['item_quantity'] ?? [];
+    $rates = $post['item_rate'] ?? [];
+
+    if (!is_array($descriptions) || !is_array($quantities) || !is_array($rates)) {
+        return [[
+            'description' => trim((string)($post['description'] ?? 'Drafting services')),
+            'quantity' => (float)($post['quantity'] ?? 1),
+            'rate' => (float)($post['rate'] ?? 0),
+        ]];
+    }
+
+    $items = [];
+    $lineCount = max(count($descriptions), count($quantities), count($rates));
+    for ($i = 0; $i < $lineCount; $i++) {
+        $items[] = [
+            'description' => trim((string)($descriptions[$i] ?? '')),
+            'quantity' => (float)($quantities[$i] ?? 0),
+            'rate' => (float)($rates[$i] ?? 0),
+        ];
+    }
+
+    return $items;
+}
+
 
 if ($route === 'download_document') {
     $clientId = (int)($_GET['client_id'] ?? 0);
@@ -368,9 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'status' => $_POST['status'] ?? 'draft',
                 'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
                 'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),
-                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
-                'quantity' => (float)($_POST['quantity'] ?? 1),
-                'rate' => (float)($_POST['rate'] ?? 0),
+                'items' => quoteItemsFromPost($_POST),
                 'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
                 'terms' => trim((string)($_POST['terms'] ?? '')),
@@ -385,9 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'status' => $_POST['status'] ?? 'draft',
                 'quote_date' => $_POST['quote_date'] ?? date('Y-m-d'),
                 'expiry_date' => $_POST['expiry_date'] ?? date('Y-m-d', strtotime('+14 days')),
-                'description' => trim((string)($_POST['description'] ?? 'Drafting services')),
-                'quantity' => (float)($_POST['quantity'] ?? 1),
-                'rate' => (float)($_POST['rate'] ?? 0),
+                'items' => quoteItemsFromPost($_POST),
                 'vat_rate' => 0.0,
                 'notes' => trim((string)($_POST['notes'] ?? '')),
                 'terms' => trim((string)($_POST['terms'] ?? '')),

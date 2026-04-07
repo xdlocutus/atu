@@ -25,7 +25,8 @@ final class QuoteRepository
         if ($number === '') {
             $number = 'Q-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
         }
-        $subtotal = (float)$data['quantity'] * (float)$data['rate'];
+        $items = $this->normalizeItems($data['items'] ?? []);
+        $subtotal = array_sum(array_column($items, 'subtotal'));
         $vatRate = (float)$data['vat_rate'];
         $vatAmount = $subtotal * ($vatRate / 100);
         $total = $subtotal + $vatAmount;
@@ -51,13 +52,15 @@ final class QuoteRepository
         $quoteId = (int)$pdo->lastInsertId();
         $item = $pdo->prepare('INSERT INTO quote_items (quote_id, description, quantity, rate, subtotal)
             VALUES (:quote_id, :description, :quantity, :rate, :subtotal)');
-        $item->execute([
-            'quote_id' => $quoteId,
-            'description' => $data['description'],
-            'quantity' => $data['quantity'],
-            'rate' => $data['rate'],
-            'subtotal' => $subtotal,
-        ]);
+        foreach ($items as $lineItem) {
+            $item->execute([
+                'quote_id' => $quoteId,
+                'description' => $lineItem['description'],
+                'quantity' => $lineItem['quantity'],
+                'rate' => $lineItem['rate'],
+                'subtotal' => $lineItem['subtotal'],
+            ]);
+        }
         $pdo->commit();
     }
 
@@ -65,7 +68,8 @@ final class QuoteRepository
     public function update(int $quoteId, int $clientId, array $data): void
     {
         $pdo = Database::connection();
-        $subtotal = (float)$data['quantity'] * (float)$data['rate'];
+        $items = $this->normalizeItems($data['items'] ?? []);
+        $subtotal = array_sum(array_column($items, 'subtotal'));
         $vatRate = (float)$data['vat_rate'];
         $vatAmount = $subtotal * ($vatRate / 100);
         $total = $subtotal + $vatAmount;
@@ -78,9 +82,44 @@ final class QuoteRepository
             'subtotal'=>$subtotal,'vat_rate'=>$vatRate,'vat_amount'=>$vatAmount,'total'=>$total,
             'notes'=>$data['notes'] ?: null,'terms'=>$data['terms'] ?: null,'id'=>$quoteId,'client_id'=>$clientId
         ]);
-        $item = $pdo->prepare('UPDATE quote_items SET description=:description, quantity=:quantity, rate=:rate, subtotal=:subtotal WHERE quote_id=:quote_id LIMIT 1');
-        $item->execute(['description'=>$data['description'],'quantity'=>$data['quantity'],'rate'=>$data['rate'],'subtotal'=>$subtotal,'quote_id'=>$quoteId]);
+        $pdo->prepare('DELETE FROM quote_items WHERE quote_id = :quote_id')->execute(['quote_id' => $quoteId]);
+        $item = $pdo->prepare('INSERT INTO quote_items (quote_id, description, quantity, rate, subtotal)
+            VALUES (:quote_id, :description, :quantity, :rate, :subtotal)');
+        foreach ($items as $lineItem) {
+            $item->execute([
+                'quote_id' => $quoteId,
+                'description' => $lineItem['description'],
+                'quantity' => $lineItem['quantity'],
+                'rate' => $lineItem['rate'],
+                'subtotal' => $lineItem['subtotal'],
+            ]);
+        }
         $pdo->commit();
+    }
+
+    private function normalizeItems(array $items): array
+    {
+        $normalized = [];
+        foreach ($items as $item) {
+            $description = trim((string)($item['description'] ?? ''));
+            $quantity = (float)($item['quantity'] ?? 0);
+            $rate = (float)($item['rate'] ?? 0);
+            if ($description === '' || $quantity <= 0) {
+                continue;
+            }
+            $normalized[] = [
+                'description' => $description,
+                'quantity' => $quantity,
+                'rate' => $rate,
+                'subtotal' => $quantity * $rate,
+            ];
+        }
+
+        if ($normalized === []) {
+            throw new \InvalidArgumentException('At least one valid line item is required.');
+        }
+
+        return $normalized;
     }
 
     public function find(int $quoteId): ?array
