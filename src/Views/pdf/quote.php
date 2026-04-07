@@ -17,19 +17,30 @@
 <?php foreach ($quote['items'] as $item): ?><tr><td><?= htmlspecialchars((string)$item['description'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$item['quantity'], ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$item['rate'],2) ?></td><td>R <?= number_format((float)$item['subtotal'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>
 <div class="right" style="margin-top:12px">Subtotal: R <?= number_format((float)$quote['subtotal'],2) ?><br><strong>Total: R <?= number_format((float)$quote['total'],2) ?></strong></div>
-<div class="note" style="white-space: pre-line;">
-PAYMENT DETAILS:
-Name: A.T.UNGERER
-Bank: ABSA
-Acc.: 1102351386
-Type: CHEQUE
-B/Code: 632005
-Pay ref: <?= htmlspecialchars((string)$quote['quote_number'], ENT_QUOTES, 'UTF-8') ?>
 
-50% deposit upon acceptance of this quotation.
-Full payment including submission fees when plans are submitted.
-This includes all prints, submission of plans untill passed.
+<div class="detail-grid">
+  <div class="block">
+    <h3>Payment Details</h3>
+    <div class="detail-row"><span>Name:</span> <strong>A.T.UNGERER</strong></div>
+    <div class="detail-row"><span>Bank:</span> <strong>ABSA</strong></div>
+    <div class="detail-row"><span>Acc.:</span> <strong>1102351386</strong></div>
+    <div class="detail-row"><span>Type:</span> <strong>CHEQUE</strong></div>
+    <div class="detail-row"><span>B/Code:</span> <strong>632005</strong></div>
+    <div class="detail-row"><span>Pay ref:</span> <strong><?= htmlspecialchars((string)$quote['quote_number'], ENT_QUOTES, 'UTF-8') ?></strong></div>
+  </div>
 
-I ............................................hereby appoint Mr A.T.Ungerer as the draughtsperson to complete the plans of my property and accept the quotation as binding
-Date:.....................
+  <div class="block">
+    <h3>Quotation Terms</h3>
+    <ul class="terms-list">
+      <li>50% deposit upon acceptance of this quotation.</li>
+      <li>Full payment including submission fees when plans are submitted.</li>
+      <li>This includes all prints, submission of plans untill passed.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="block appointment-block">
+  I ............................................hereby appoint Mr A.T.Ungerer as the draughtsperson to
+  complete the plans of my property and accept the quotation as binding
+  Date:.....................
 </div>
