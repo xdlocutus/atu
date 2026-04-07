@@ -24,4 +24,30 @@ $statusLabel = match ((string)$invoice['status']) {
 <table><thead><tr><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>
 <tr><td><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$invoice['total'],2) ?></td><td>R <?= number_format((float)$invoice['amount_paid'],2) ?></td><td>R <?= number_format((float)$invoice['balance_due'],2) ?></td></tr>
 </tbody></table>
-<div class="note"><strong>Deposit terms:</strong> 50% deposit due before work starts.</div>
+
+<div class="detail-grid">
+  <div class="block">
+    <h3>Payment Details</h3>
+    <div class="detail-row"><span>Name:</span> <strong>A.T.UNGERER</strong></div>
+    <div class="detail-row"><span>Bank:</span> <strong>ABSA</strong></div>
+    <div class="detail-row"><span>Acc.:</span> <strong>1102351386</strong></div>
+    <div class="detail-row"><span>Type:</span> <strong>CHEQUE</strong></div>
+    <div class="detail-row"><span>B/Code:</span> <strong>632005</strong></div>
+    <div class="detail-row"><span>Pay ref:</span> <strong><?= htmlspecialchars((string)$invoice['invoice_number'], ENT_QUOTES, 'UTF-8') ?></strong></div>
+  </div>
+
+  <div class="block">
+    <h3>Invoice Terms</h3>
+    <ul class="terms-list">
+      <li>50% deposit upon acceptance of this quotation.</li>
+      <li>Full payment including submission fees when plans are submitted.</li>
+      <li>This includes all prints, submission of plans untill passed.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="block appointment-block">
+  I ............................................hereby appoint Mr A.T.Ungerer as the draughtsperson to
+  complete the plans of my property and accept the quotation as binding
+  Date:.....................
+</div>
