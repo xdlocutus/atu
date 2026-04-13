@@ -6,7 +6,7 @@
   <style>
     body{font-family:Calibri,Arial,sans-serif;color:#1f2937;margin:24px}
     .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #d1d5db;padding-bottom:12px;margin-bottom:16px}
-    .logo{max-height:70px}
+    .logo{max-height:40px;width:auto;height:auto}
     table{width:100%;border-collapse:collapse;margin-top:12px}
     th,td{border:1px solid #d1d5db;padding:8px;text-align:left}
     .muted{color:#6b7280}.right{text-align:right}
