@@ -190,6 +190,30 @@ if ($route === 'export_quote') {
     exit;
 }
 
+if ($route === 'export_quote_word') {
+    $clientId = (int)($_GET['client_id'] ?? 0);
+    $quoteId = (int)($_GET['quote_id'] ?? 0);
+    $quote = $quoteRepo->find($quoteId);
+    $client = $clientRepo->find($clientId);
+    if (!$quote || !$client || (int)$quote['client_id'] !== $clientId) {
+        http_response_code(404);
+        echo 'Quote not found';
+        exit;
+    }
+    $company = [
+        'name' => Env::get('COMPANY_NAME', 'Your Company Name'),
+        'email' => Env::get('COMPANY_EMAIL', ''),
+        'phone' => Env::get('COMPANY_PHONE', ''),
+        'address' => Env::get('COMPANY_ADDRESS', ''),
+        'logo' => Env::get('COMPANY_LOGO_URL', ''),
+    ];
+    $safeQuoteNumber = preg_replace('/[^A-Za-z0-9_-]/', '_', (string)$quote['quote_number']) ?: (string)$quoteId;
+    header('Content-Type: application/msword; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="quote_' . $safeQuoteNumber . '.doc"');
+    View::render('word/quote', ['title' => 'Quote Word Export', 'quote' => $quote, 'client' => $client, 'company' => $company]);
+    exit;
+}
+
 if ($route === 'export_invoice') {
     $clientId = (int)($_GET['client_id'] ?? 0);
     $invoiceId = (int)($_GET['invoice_id'] ?? 0);
