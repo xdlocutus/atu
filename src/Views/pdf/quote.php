@@ -12,7 +12,12 @@
     <div>Expiry: <?= htmlspecialchars((string)$quote['expiry_date'], ENT_QUOTES, 'UTF-8') ?></div>
   </div>
 </div>
-<div><strong>Client:</strong> <?= htmlspecialchars((string)$client['full_name'], ENT_QUOTES, 'UTF-8') ?> (Erf <?= htmlspecialchars((string)$client['erf_number'], ENT_QUOTES, 'UTF-8') ?>)</div>
+<div>
+  <strong>Client:</strong> <?= htmlspecialchars((string)$client['full_name'], ENT_QUOTES, 'UTF-8') ?>
+  (Erf <?= htmlspecialchars((string)$client['erf_number'], ENT_QUOTES, 'UTF-8') ?>)
+  <?php if (!empty($client['email'])): ?> | Email: <?= htmlspecialchars((string)$client['email'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+  <?php if (!empty($client['contact_number'])): ?> | Contact: <?= htmlspecialchars((string)$client['contact_number'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+</div>
 <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Subtotal</th></tr></thead><tbody>
 <?php foreach ($quote['items'] as $item): ?><tr><td><?= htmlspecialchars((string)$item['description'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$item['quantity'], ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$item['rate'],2) ?></td><td>R <?= number_format((float)$item['subtotal'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>
