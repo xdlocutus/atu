@@ -21,7 +21,7 @@
 <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Subtotal</th></tr></thead><tbody>
 <?php foreach ($quote['items'] as $item): ?><tr><td><?= htmlspecialchars((string)$item['description'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string)$item['quantity'], ENT_QUOTES, 'UTF-8') ?></td><td>R <?= number_format((float)$item['rate'],2) ?></td><td>R <?= number_format((float)$item['subtotal'],2) ?></td></tr><?php endforeach; ?>
 </tbody></table>
-<div class="right" style="margin-top:12px">Subtotal: R <?= number_format((float)$quote['subtotal'],2) ?><br><strong>Total: R <?= number_format((float)$quote['total'],2) ?></strong></div>
+<div class="right" style="margin-top:12px"><strong>Total: R <?= number_format((float)$quote['total'],2) ?></strong></div>
 
 <div class="detail-grid">
   <div class="block">
